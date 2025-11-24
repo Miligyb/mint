@@ -102,8 +102,8 @@
             Подписаться
         </a>
 
-        <!-- Кнопка проверки -->
-        <button id="btn-check-sub" style="display: none;" class="w-full bg-gradient-to-r from-teal-400 to-green-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition animate-pulse mt-4">
+        <!-- Кнопка проверки (ИСПРАВЛЕНО: добавлено flex items-center justify-center) -->
+        <button id="btn-check-sub" style="display: none;" class="w-full bg-gradient-to-r from-teal-400 to-green-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition animate-pulse mt-4 flex items-center justify-center">
             Я подписался ✅
         </button>
     </div>
@@ -304,7 +304,7 @@
             // Базовая скорость: 100 энергии / 10 сек = 10 ед/сек
             rechargeRatePerSec: 10, 
             
-            // НОВОЕ: 0 - не заряжается, > 0 - время начала зарядки (timestamp)
+            // 0 - не заряжается, > 0 - время начала зарядки (timestamp)
             rechargeStartTime: 0, 
 
             eMaxLvl: 0, // Уровень макс. энергии
@@ -314,7 +314,8 @@
         };
 
         try {
-            const saved = localStorage.getItem('mintSave_v4'); // Обновляем версию сохранения
+            // Обновляем версию сохранения для новых полей энергии
+            const saved = localStorage.getItem('mintSave_v4'); 
             if (saved) {
                 const loadedGame = JSON.parse(saved);
                 game = { ...game, ...loadedGame };
@@ -349,6 +350,4 @@
 
             // ЭНЕРГИЯ UI
             uiEnergy: document.getElementById('ui-energy'),
-            uiMaxEnergy: document.getElementById('ui-max-energy'),
-            energyBar: document.getElementById('energy-bar'),
-            uiRec
+            uiMaxEnergy: d
