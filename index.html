@@ -3,26 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light"> <!-- Принудительно светлая тема браузера -->
     <title>Mint Clicker</title>
+    
+    <!-- Подключаем Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Настройка Tailwind, чтобы он не зависел от системной темы
+        tailwind.config = {
+            darkMode: 'class', // Отключаем авто-темную тему
+            theme: {
+                extend: {
+                    colors: {
+                        mint: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    
     <style>
+        /* БАЗОВЫЕ СТИЛИ (Работают даже если Tailwind сломался) */
         body {
             font-family: 'Nunito', sans-serif;
-            background-color: #e0f2f1;
+            background-color: #e0f2f1 !important; /* Принудительно светлый мятный */
             color: #004d40;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
             touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .mint-btn:active {
-            transform: scale(0.95);
+        /* Критически важный класс для скрытия окон */
+        .hidden {
+            display: none !important;
         }
 
-        .btn-press:active {
-            transform: translateY(2px);
-            box-shadow: none;
-        }
+        /* Анимации */
+        .mint-btn:active { transform: scale(0.95); }
+        .btn-press:active { transform: translateY(2px); }
 
         @keyframes floatUp {
             0% { opacity: 1; transform: translateY(0) scale(1); }
@@ -36,38 +64,30 @@
             pointer-events: none;
             animation: floatUp 0.8s ease-out forwards;
             font-size: 1.5rem;
+            z-index: 100;
             text-shadow: 1px 1px 0 #fff;
-            z-index: 40;
         }
 
-        .nav-item.active {
-            color: #1de9b6;
-            transform: translateY(-5px);
-        }
+        /* Навигация */
+        .nav-item.active { color: #1de9b6; transform: translateY(-5px); }
         
-        .nav-item.active svg {
-            filter: drop-shadow(0 0 5px rgba(29, 233, 182, 0.5));
-        }
-
-        .custom-scroll::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background-color: #80cbc4;
-            border-radius: 4px;
-        }
-
+        /* Контейнеры */
         #app-container {
             height: 100vh;
             display: flex;
             flex-direction: column;
+            background-color: #fff;
+            max-width: 480px; /* Ограничение ширины на ПК */
+            margin: 0 auto;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
 
         .content-area {
             flex: 1;
             overflow-y: auto;
             position: relative;
-            display: none;
+            display: none; /* Скрыто по умолчанию */
             padding-bottom: 80px;
         }
 
@@ -81,54 +101,51 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
+        /* Скроллбар */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #80cbc4; border-radius: 4px; }
     </style>
 </head>
 <body>
 
 <!-- SUBSCRIPTION GATE (Экран подписки) -->
-<div id="sub-gate" class="fixed inset-0 z-50 bg-teal-50 flex flex-col items-center justify-center p-6 text-center hidden">
+<!-- Добавлен style="display:none" чтобы он не мелькал если JS сразу решит его скрыть, но класс hidden убрал для теста JS -->
+<div id="sub-gate" class="fixed inset-0 z-50 bg-teal-50 flex flex-col items-center justify-center p-6 text-center hidden" style="background-color: #f0fdf4;">
     <div class="mb-8 p-6 bg-white rounded-3xl shadow-xl w-full max-w-sm border border-teal-100">
         <div class="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4 text-teal-600 animate-bounce">
-            <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-            </svg>
+            <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
         </div>
         <h2 class="text-2xl font-black text-gray-800 mb-2">Добро пожаловать!</h2>
-        <p class="text-gray-500 mb-6 text-sm">Чтобы начать добывать мяту и выводить реальные призы, необходимо подписаться на наш канал.</p>
+        <p class="text-gray-500 mb-6 text-sm">Чтобы начать игру, подпишитесь на канал.</p>
         
-        <!-- Кнопка Подписаться -->
-        <a id="btn-go-sub" href="https://t.me/mintclickerchanel" target="_blank" class="block w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl shadow-md transform transition active:scale-95 mb-4 flex items-center justify-center gap-2">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.06-.14-.04-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/></svg>
+        <a id="btn-go-sub" href="https://t.me/mintclickerchanel" target="_blank" class="block w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl shadow-md mb-4 flex items-center justify-center gap-2 transition transform active:scale-95">
             Подписаться
         </a>
 
-        <!-- Кнопка Я подписался (изначально скрыта) -->
-        <button id="btn-check-sub" class="hidden w-full bg-gradient-to-r from-teal-400 to-green-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transform transition active:scale-95 animate-pulse">
+        <button id="btn-check-sub" class="hidden w-full bg-gradient-to-r from-teal-400 to-green-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition transform active:scale-95 animate-pulse">
             Я подписался ✅
         </button>
     </div>
 </div>
 
-<div id="app-container" class="max-w-md mx-auto bg-white shadow-2xl relative">
+<div id="app-container">
     
     <!-- HEADER -->
-    <div class="bg-white p-4 z-10 shadow-sm flex flex-col items-center justify-center border-b border-teal-100">
+    <div class="bg-white p-4 z-10 shadow-sm flex flex-col items-center justify-center border-b border-teal-100 shrink-0">
         <p class="text-gray-500 text-sm font-bold uppercase tracking-widest">Ваш баланс</p>
         <div class="flex items-center gap-2">
-            <svg class="w-8 h-8 text-teal-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/>
-            </svg>
+            <svg class="w-8 h-8 text-teal-500" fill="currentColor" viewBox="0 0 24 24"><path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/></svg>
             <h1 id="score-display" class="text-4xl font-black text-teal-800">0</h1>
         </div>
-        <p class="text-xs text-teal-400 mt-1">
-            +<span id="auto-display">0</span>/сек
-        </p>
+        <p class="text-xs text-teal-400 mt-1">+<span id="auto-display">0</span>/сек</p>
     </div>
 
     <!-- MAIN VIEW: Кликер -->
     <div id="clicker-view" class="content-area active items-center justify-center bg-green-50">
         <div class="relative w-full h-full flex flex-col items-center justify-center">
-            <div id="mint-button" class="mint-btn cursor-pointer relative group transition-transform">
+            <div id="mint-button" class="mint-btn cursor-pointer relative group transition-transform select-none">
+                <!-- SVG Мяты -->
                 <svg width="220" height="220" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="filter drop-shadow-lg group-hover:drop-shadow-2xl transition-all duration-300">
                     <path d="M17.5 8.5C9.5 10.5 7.5 16.5 5.5 21.5L7.5 22L8.5 19.5C9 19.7 9.5 19.8 10 19.8C21 19.8 24 2.8 24 2.8C23 4.8 16 5 11 6C6 7 4 11.2 4 13.2C4 15.2 5.8 17 5.8 17C9 7.5 19 7.5 19 7.5" fill="#4ade80"/>
                     <path d="M17.5 8.5C9.5 10.5 7.5 16.5 5.5 21.5L7.5 22L8.5 19.5C9 19.7 9.5 19.8 10 19.8C21 19.8 24 2.8 24 2.8C23 4.8 16 5 11 6C6 7 4 11.2 4 13.2C4 15.2 5.8 17 5.8 17C9 7.5 19 7.5 19 7.5" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -141,8 +158,9 @@
     </div>
 
     <!-- UPGRADES VIEW -->
-    <div id="upgrades-view" class="content-area bg-gray-50 custom-scroll px-4 py-6">
+    <div id="upgrades-view" class="content-area bg-gray-50 px-4 py-6">
         <h2 class="text-2xl font-bold mb-6 text-gray-800 px-2">Улучшения</h2>
+        
         <div id="btn-upgrade-click" class="bg-white p-4 rounded-xl shadow-md mb-4 border border-teal-100 flex items-center justify-between cursor-pointer btn-press transition-all hover:bg-teal-50">
             <div class="flex items-center gap-4">
                 <div class="bg-blue-100 p-3 rounded-lg text-blue-500">
@@ -155,7 +173,7 @@
             </div>
             <div class="text-right">
                 <p class="font-bold text-teal-600 price-text" id="click-price">50</p>
-                <p class="text-xs text-gray-400">Уровень: <span id="click-level">1</span></p>
+                <p class="text-xs text-gray-400">Ур: <span id="click-level">1</span></p>
             </div>
         </div>
 
@@ -166,16 +184,13 @@
                 </div>
                 <div>
                     <h3 class="font-bold text-gray-800">Авто-ферма</h3>
-                    <p class="text-xs text-gray-500">+1 мята в секунду</p>
+                    <p class="text-xs text-gray-500">+1 мята/сек</p>
                 </div>
             </div>
             <div class="text-right">
                 <p class="font-bold text-teal-600 price-text" id="auto-price">100</p>
-                <p class="text-xs text-gray-400">Уровень: <span id="auto-level">0</span></p>
+                <p class="text-xs text-gray-400">Ур: <span id="auto-level">0</span></p>
             </div>
-        </div>
-        <div class="mt-8 p-4 bg-teal-50 rounded-lg text-center text-sm text-teal-700">
-            Покупайте улучшения, чтобы быстрее накопить миллион!
         </div>
     </div>
 
@@ -185,40 +200,26 @@
             <div class="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4 text-teal-600">
                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             </div>
-            <h2 class="text-2xl font-black text-gray-800 mb-2">Вывод Мяты</h2>
-            <div class="h-1 w-16 bg-teal-400 mx-auto rounded mb-6"></div>
-
+            <h2 class="text-2xl font-black text-gray-800 mb-2">Вывод</h2>
+            
             <div id="withdraw-locked" class="block">
-                <p class="text-gray-600 mb-6">
-                    Чтобы конвертировать заработанную мяту в реальные звёзды, вам необходимо накопить минимум 
-                    <span class="font-bold text-teal-600">1,000,000</span> мяты.
-                </p>
+                <p class="text-gray-600 mb-6 text-sm">Накопите <span class="font-bold text-teal-600">1,000,000</span> мяты для вывода.</p>
                 <div class="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
                     <div id="progress-bar" class="bg-teal-500 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
                 </div>
-                <p class="text-xs text-gray-400 mb-6">Прогресс до 1М</p>
-                <button disabled class="w-full bg-gray-300 text-white font-bold py-3 px-4 rounded-xl cursor-not-allowed">
-                    Недостаточно средств
-                </button>
+                <button disabled class="w-full bg-gray-300 text-white font-bold py-3 px-4 rounded-xl cursor-not-allowed mt-4">Недостаточно</button>
             </div>
 
             <div id="withdraw-unlocked" class="hidden">
-                <p class="text-green-600 font-bold text-lg mb-4">
-                    Поздравляем! Вы накопили миллион!
-                </p>
-                <p class="text-gray-600 mb-6">
-                    Для осуществления вывода средств, пожалуйста, свяжитесь с нашим менеджером.
-                </p>
-                <a href="https://t.me/CAMSPB" target="_blank" class="block w-full bg-gradient-to-r from-teal-400 to-green-500 hover:from-teal-500 hover:to-green-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transform transition hover:scale-105">
-                    Написать @CAMSPB
-                </a>
+                <p class="text-green-600 font-bold text-lg mb-4">Готово к выводу!</p>
+                <a href="https://t.me/CAMSPB" target="_blank" class="block w-full bg-gradient-to-r from-teal-400 to-green-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg">Написать менеджеру</a>
             </div>
         </div>
     </div>
 
     <!-- BOTTOM NAVIGATION -->
-    <div class="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 shadow-[0_-5px_10px_rgba(0,0,0,0.02)] z-20 rounded-t-2xl">
-        <button onclick="switchTab('clicker')" id="nav-clicker" class="nav-item active flex flex-col items-center text-gray-400 transition-all duration-300 w-1/3">
+    <div class="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 shadow-[0_-5px_10px_rgba(0,0,0,0.02)] z-20 rounded-t-2xl shrink-0">
+        <button onclick="switchTab('clicker')" id="nav-clicker" class="nav-item active flex flex-col items-center text-teal-600 transition-all duration-300 w-1/3">
             <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
             <span class="text-xs font-bold">Клик</span>
         </button>
@@ -235,6 +236,23 @@
 </div>
 
 <script>
+// Оборачиваем весь код в DOMContentLoaded, чтобы он запускался ТОЛЬКО когда HTML готов
+document.addEventListener('DOMContentLoaded', () => {
+
+    console.log("Mint Clicker Starting...");
+
+    // --- Безопасная работа с памятью ---
+    const SafeStorage = {
+        get: (key) => {
+            try { return localStorage.getItem(key); } 
+            catch (e) { console.warn("Storage access denied"); return null; }
+        },
+        set: (key, value) => {
+            try { localStorage.setItem(key, value); } 
+            catch (e) { console.warn("Storage save failed"); }
+        }
+    };
+
     // --- Состояние игры ---
     const defaultState = {
         balance: 0,
@@ -244,17 +262,21 @@
         autoLevel: 0,
         clickUpgradeCost: 100,
         autoUpgradeCost: 500,
-        isSubscribed: false // Новый параметр для проверки подписки
+        isSubscribed: false
     };
 
-    let state = loadGame() || defaultState;
-
-    // Гарантируем совместимость со старыми сохранениями (если у кого-то нет поля isSubscribed)
-    if (typeof state.isSubscribed === 'undefined') {
-        state.isSubscribed = false;
+    let state;
+    const saved = SafeStorage.get('mintClickerSave');
+    if (saved) {
+        try { state = JSON.parse(saved); } catch(e) { state = defaultState; }
+    } else {
+        state = defaultState;
     }
+    
+    // Гарантия полей
+    if (typeof state.isSubscribed === 'undefined') state.isSubscribed = false;
 
-    // --- Элементы DOM ---
+    // --- Элементы DOM (Загружаем их здесь, когда они точно существуют) ---
     const els = {
         balance: document.getElementById('score-display'),
         autoDisplay: document.getElementById('auto-display'),
@@ -269,55 +291,52 @@
         btnUpgradeClick: document.getElementById('btn-upgrade-click'),
         btnUpgradeAuto: document.getElementById('btn-upgrade-auto'),
         
-        // Элементы подписки
         subGate: document.getElementById('sub-gate'),
         btnGoSub: document.getElementById('btn-go-sub'),
-        btnCheckSub: document.getElementById('btn-check-sub')
+        btnCheckSub: document.getElementById('btn-check-sub'),
+        
+        navClicker: document.getElementById('nav-clicker'),
+        navUpgrades: document.getElementById('nav-upgrades'),
+        navWithdraw: document.getElementById('nav-withdraw'),
+        
+        viewClicker: document.getElementById('clicker-view'),
+        viewUpgrades: document.getElementById('upgrades-view'),
+        viewWithdraw: document.getElementById('withdraw-view')
     };
 
-    // --- Логика экрана подписки ---
+    // --- Проверка подписки ---
     function initSubscriptionGate() {
-        if (state.isSubscribed) {
-            // Если уже подписан - скрываем сразу
-            els.subGate.classList.add('hidden');
-        } else {
-            // Если не подписан - показываем
+        if (!state.isSubscribed) {
             els.subGate.classList.remove('hidden');
+        } else {
+            els.subGate.classList.add('hidden');
         }
     }
 
-    // Нажатие на "Подписаться"
-    els.btnGoSub.addEventListener('click', () => {
-        // Делаем небольшую задержку для визуального эффекта
+    els.btnGoSub.onclick = () => {
         setTimeout(() => {
             els.btnCheckSub.classList.remove('hidden');
-        }, 500);
-    });
+        }, 1000);
+    };
 
-    // Нажатие на "Я подписался"
-    els.btnCheckSub.addEventListener('click', () => {
+    els.btnCheckSub.onclick = () => {
         state.isSubscribed = true;
         saveGame();
         els.subGate.classList.add('hidden');
-    });
+    };
 
-    // --- Инициализация ---
-    initSubscriptionGate(); // Проверяем подписку
-    updateUI();
-    setInterval(autoFarm, 1000);
-    setInterval(saveGame, 5000);
-
-    // --- Логика Игры ---
-
-    // Клик по мяте
-    els.btnMint.addEventListener('click', (e) => {
+    // --- Логика игры ---
+    els.btnMint.onclick = (e) => {
         addMint(state.clickPower);
-        createFloatingText(e.clientX, e.clientY, `+${state.clickPower}`);
-        if (navigator.vibrate) navigator.vibrate(10);
-    });
+        // Защита от NaN координат (бывает на мобильных при тапе)
+        const x = e.clientX || window.innerWidth / 2;
+        const y = e.clientY || window.innerHeight / 2;
+        createFloatingText(x, y, `+${state.clickPower}`);
+        
+        if (navigator.vibrate) try { navigator.vibrate(10); } catch(e){}
+    };
 
-    // Покупка улучшений
-    els.btnUpgradeClick.addEventListener('click', () => {
+    els.btnUpgradeClick.onclick = () => {
         if (state.balance >= state.clickUpgradeCost) {
             state.balance -= state.clickUpgradeCost;
             state.clickPower += 1;
@@ -328,9 +347,9 @@
         } else {
             flashElement(els.btnUpgradeClick, 'bg-red-100');
         }
-    });
+    };
 
-    els.btnUpgradeAuto.addEventListener('click', () => {
+    els.btnUpgradeAuto.onclick = () => {
         if (state.balance >= state.autoUpgradeCost) {
             state.balance -= state.autoUpgradeCost;
             state.autoIncome += 1;
@@ -341,22 +360,14 @@
         } else {
             flashElement(els.btnUpgradeAuto, 'bg-red-100');
         }
-    });
+    };
 
     function addMint(amount) {
         state.balance += amount;
         updateUI();
     }
 
-    function autoFarm() {
-        if (state.autoIncome > 0) {
-            addMint(state.autoIncome);
-            els.balance.style.transform = "scale(1.05)";
-            setTimeout(() => els.balance.style.transform = "scale(1)", 100);
-        }
-    }
-
-    // --- Обновление интерфейса ---
+    // --- Обновление UI ---
     function updateUI() {
         els.balance.textContent = Math.floor(state.balance).toLocaleString();
         els.autoDisplay.textContent = state.autoIncome;
@@ -379,33 +390,33 @@
             els.withdrawUnlocked.classList.add('hidden');
         }
 
-        toggleOpacity(els.btnUpgradeClick, state.balance >= state.clickUpgradeCost);
-        toggleOpacity(els.btnUpgradeAuto, state.balance >= state.autoUpgradeCost);
+        checkAffordability(els.btnUpgradeClick, state.balance >= state.clickUpgradeCost);
+        checkAffordability(els.btnUpgradeAuto, state.balance >= state.autoUpgradeCost);
     }
 
-    function toggleOpacity(element, isAffordable) {
-        if (isAffordable) {
-            element.querySelector('.price-text').classList.remove('text-red-400');
-            element.querySelector('.price-text').classList.add('text-teal-600');
+    function checkAffordability(element, canAfford) {
+        const priceText = element.querySelector('.price-text');
+        if (canAfford) {
+            priceText.classList.remove('text-red-400');
+            priceText.classList.add('text-teal-600');
         } else {
-            element.querySelector('.price-text').classList.remove('text-teal-600');
-            element.querySelector('.price-text').classList.add('text-red-400');
+            priceText.classList.remove('text-teal-600');
+            priceText.classList.add('text-red-400');
         }
     }
 
     function createFloatingText(x, y, text) {
         const el = document.createElement('div');
-        el.classList.add('floating-number');
+        el.className = 'floating-number';
         el.textContent = text;
         const offsetX = (Math.random() - 0.5) * 40;
-        const finalX = x || window.innerWidth / 2;
-        const finalY = y || window.innerHeight / 2;
-        el.style.left = `${finalX + offsetX}px`;
-        el.style.top = `${finalY - 50}px`;
+        el.style.left = `${x + offsetX}px`;
+        el.style.top = `${y - 50}px`;
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 800);
     }
 
-    function flashElement(el, bgClass) {
-        el.classList.add(bgClass);
-        setTimeout(() => el.classList.
+    function flashElement(el, colorClass) {
+        // Проверяем, есть ли tailwind (если нет, цвет не изменится, но JS не упадет)
+        el.classList.add(colorClass);
+    
