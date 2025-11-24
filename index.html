@@ -26,6 +26,7 @@
 
         /* Утилиты */
         .flex { display: flex; }
+        .hidden { display: none !important; }
         
         /* Анимации */
         .click-anim:active { transform: scale(0.95); }
@@ -101,7 +102,7 @@
             Подписаться
         </a>
 
-        <!-- КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: style="display: none;" вместо class="hidden" -->
+        <!-- Кнопка проверки -->
         <button id="btn-check-sub" style="display: none;" class="w-full bg-gradient-to-r from-teal-400 to-green-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition animate-pulse mt-4">
             Я подписался ✅
         </button>
@@ -110,18 +111,32 @@
     <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
     <div id="app">
         
-        <!-- Верхняя панель (Баланс) -->
+        <!-- Верхняя панель (Баланс и Энергия) -->
         <div class="bg-white p-4 border-b border-teal-100 flex flex-col items-center shrink-0 z-10 shadow-sm">
             <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Баланс</div>
             <div class="flex items-center gap-2 mt-1">
                 <svg class="w-8 h-8 text-teal-500" fill="currentColor" viewBox="0 0 24 24"><path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/></svg>
                 <span id="ui-balance" class="text-4xl font-black text-teal-900">0</span>
             </div>
-            <div class="text-xs text-teal-500 font-bold mt-1">+<span id="ui-auto">0</span> / сек</div>
+            <div class="text-xs text-teal-500 font-bold mt-1 mb-3">+<span id="ui-auto">0</span> / сек</div>
+
+            <!-- Энергия -->
+            <div class="w-full max-w-xs px-2">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs font-bold text-green-700">Энергия: <span id="ui-energy">100</span> / <span id="ui-max-energy">100</span></span>
+                    <span id="ui-recharge-rate" class="text-xs font-bold text-green-500"></span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <!-- Цвет полосы зависит от состояния: красный при кулдауне, зеленый - при наличии энергии -->
+                    <div id="energy-bar" class="h-2 transition-all duration-100" style="width: 100%; background-color: #10b981;"></div>
+                </div>
+            </div>
+
         </div>
 
         <!-- ЭКРАН 1: Кликер -->
         <div id="screen-clicker" class="screen active items-center justify-center bg-green-50 relative">
+            <!-- Элемент, который ловит клики. Проверяем энергию в JS -->
             <div id="click-area" class="w-full h-full flex flex-col items-center justify-center cursor-pointer">
                 <!-- МЯТА -->
                 <div id="mint-btn" class="transition-transform duration-100 click-anim">
@@ -131,7 +146,7 @@
                         <path d="M11 6C13 8 16 9 19 9" stroke="#166534" stroke-width="1" stroke-opacity="0.5" stroke-linecap="round"/>
                     </svg>
                 </div>
-                <p class="mt-6 text-teal-700 font-bold opacity-50 text-lg animate-pulse">Тапай!</p>
+                <p id="tap-message" class="mt-6 text-teal-700 font-bold opacity-50 text-lg animate-pulse">Тапай!</p>
             </div>
         </div>
 
@@ -139,37 +154,80 @@
         <div id="screen-upgrades" class="screen bg-gray-50 px-4 py-6">
             <h2 class="text-2xl font-bold mb-6 text-gray-800">Магазин</h2>
             
-            <!-- Улучшение клика -->
-            <div id="buy-click" class="bg-white p-4 rounded-2xl shadow-sm mb-4 border border-gray-100 flex items-center justify-between active:scale-95 transition duration-100 cursor-pointer">
-                <div class="flex items-center gap-4">
-                    <div class="bg-blue-100 p-3 rounded-xl text-blue-500">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <!-- ГРУППА 1: Улучшения Производства -->
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Производство</h3>
+                <!-- Улучшение клика -->
+                <div id="buy-click" class="bg-white p-4 rounded-2xl shadow-sm mb-4 border border-gray-100 flex items-center justify-between active:scale-95 transition duration-100 cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-blue-100 p-3 rounded-xl text-blue-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-800">Сила клика</div>
+                            <div class="text-xs text-gray-400">+1 за тап</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="font-bold text-gray-800">Сила клика</div>
-                        <div class="text-xs text-gray-400">+1 за тап</div>
+                    <div class="text-right">
+                        <div class="font-bold text-teal-600 price-display" id="price-click">100</div>
+                        <div class="text-xs text-gray-400">Ур. <span id="lvl-click">1</span></div>
                     </div>
                 </div>
-                <div class="text-right">
-                    <div class="font-bold text-teal-600 price-display" id="price-click">100</div>
-                    <div class="text-xs text-gray-400">Ур. <span id="lvl-click">1</span></div>
+
+                <!-- Улучшение Авто -->
+                <div id="buy-auto" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between active:scale-95 transition duration-100 cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-purple-100 p-3 rounded-xl text-purple-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-800">Авто-ферма</div>
+                            <div class="text-xs text-gray-400">+1 в сек</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-teal-600 price-display" id="price-auto">500</div>
+                        <div class="text-xs text-gray-400">Ур. <span id="lvl-auto">0</span></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Улучшение Авто -->
-            <div id="buy-auto" class="bg-white p-4 rounded-2xl shadow-sm mb-4 border border-gray-100 flex items-center justify-between active:scale-95 transition duration-100 cursor-pointer">
-                <div class="flex items-center gap-4">
-                    <div class="bg-purple-100 p-3 rounded-xl text-purple-500">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <!-- ГРУППА 2: Улучшения Энергии (НОВЫЕ) -->
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Энергия (Стамина)</h3>
+
+                <!-- Улучшение Макс. Энергии -->
+                <div id="buy-energy-max" class="bg-white p-4 rounded-2xl shadow-sm mb-4 border border-gray-100 flex items-center justify-between active:scale-95 transition duration-100 cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-yellow-100 p-3 rounded-xl text-yellow-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-800">Запас энергии</div>
+                            <div class="text-xs text-gray-400">+25 макс. кликов</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="font-bold text-gray-800">Авто-ферма</div>
-                        <div class="text-xs text-gray-400">+1 в сек</div>
+                    <div class="text-right">
+                        <div class="font-bold text-teal-600 price-display" id="price-energy-max">500</div>
+                        <div class="text-xs text-gray-400">Ур. <span id="lvl-energy-max">0</span></div>
                     </div>
                 </div>
-                <div class="text-right">
-                    <div class="font-bold text-teal-600 price-display" id="price-auto">500</div>
-                    <div class="text-xs text-gray-400">Ур. <span id="lvl-auto">0</span></div>
+
+                <!-- Улучшение Скорости Перезарядки -->
+                <div id="buy-recharge-speed" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between active:scale-95 transition duration-100 cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-pink-100 p-3 rounded-xl text-pink-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.356-2a8.001 8.001 0 0015.356 2m0 0H15"></path></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-800">Скорость рег.</div>
+                            <div class="text-xs text-gray-400">+1 ед. энергии/сек</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-teal-600 price-display" id="price-recharge-speed">1000</div>
+                        <div class="text-xs text-gray-400">Ур. <span id="lvl-recharge-speed">0</span></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -225,21 +283,52 @@
 
     <!-- СКРИПТ (ЛОГИКА) -->
     <script>
+        // Интервал обновления логики игры (10 раз в секунду)
+        const GAME_TICK_MS = 100; 
+
         // 1. Инициализация данных (Стейт)
         let game = {
             bal: 0,
-            cPow: 1,
-            auto: 0,
-            cLvl: 1,
-            aLvl: 0,
+            cPow: 1, 
+            auto: 0, 
+            cLvl: 1, 
+            aLvl: 0, 
             cCost: 100,
             aCost: 500,
-            sub: false
+            sub: false,
+
+            // ПОЛЯ ЭНЕРГИИ
+            maxEnergy: 100,
+            currentEnergy: 100,
+            
+            // Базовая скорость: 100 энергии / 10 сек = 10 ед/сек
+            rechargeRatePerSec: 10, 
+            
+            // НОВОЕ: 0 - не заряжается, > 0 - время начала зарядки (timestamp)
+            rechargeStartTime: 0, 
+
+            eMaxLvl: 0, // Уровень макс. энергии
+            rSpdLvl: 0, // Уровень скорости перезарядки
+            eCost: 500,
+            rCost: 1000
         };
 
         try {
-            const saved = localStorage.getItem('mintSave_v2');
-            if (saved) game = JSON.parse(saved);
+            const saved = localStorage.getItem('mintSave_v4'); // Обновляем версию сохранения
+            if (saved) {
+                const loadedGame = JSON.parse(saved);
+                game = { ...game, ...loadedGame };
+
+                // Заполнение новых полей, если старое сохранение
+                if (typeof loadedGame.maxEnergy === 'undefined') game.maxEnergy = 100;
+                if (typeof loadedGame.currentEnergy === 'undefined') game.currentEnergy = 100;
+                if (typeof loadedGame.rechargeRatePerSec === 'undefined') game.rechargeRatePerSec = 10;
+                if (typeof loadedGame.rechargeStartTime === 'undefined') game.rechargeStartTime = 0;
+                if (typeof loadedGame.eMaxLvl === 'undefined') game.eMaxLvl = 0;
+                if (typeof loadedGame.rSpdLvl === 'undefined') game.rSpdLvl = 0;
+                if (typeof loadedGame.eCost === 'undefined') game.eCost = 500;
+                if (typeof loadedGame.rCost === 'undefined') game.rCost = 1000;
+            }
         } catch(e) { console.log('Save load error'); }
 
         if (typeof game.sub === 'undefined') game.sub = false;
@@ -257,169 +346,9 @@
             lClick: document.getElementById('lvl-click'),
             pAuto: document.getElementById('price-auto'),
             lAuto: document.getElementById('lvl-auto'),
-            
-            progBar: document.getElementById('progress-bar'),
-            lock: document.getElementById('state-locked'),
-            unlock: document.getElementById('state-unlocked')
-        };
 
-        // 3. Логика Подписки (Gate)
-        if (game.sub) {
-            ui.gate.style.display = 'none';
-        }
-
-        ui.btnSub.addEventListener('click', function() {
-            setTimeout(function() {
-                // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Показываем через встроенный стиль
-                ui.btnCheck.style.display = 'block'; 
-            }, 1000); // Кнопка появляется через 1 секунду
-        });
-
-        ui.btnCheck.addEventListener('click', function() {
-            game.sub = true;
-            save();
-            ui.gate.style.display = 'none';
-        });
-
-        // 4. Логика Игры
-        function save() {
-            try { localStorage.setItem('mintSave_v2', JSON.stringify(game)); } catch(e){}
-        }
-
-        function render() {
-            ui.bal.textContent = Math.floor(game.bal).toLocaleString();
-            ui.auto.textContent = game.auto;
-            
-            ui.pClick.textContent = game.cCost.toLocaleString();
-            ui.lClick.textContent = game.cLvl;
-            
-            ui.pAuto.textContent = game.aCost.toLocaleString();
-            ui.lAuto.textContent = game.aLvl;
-
-            // Логика вывода
-            const TARGET = 1000000;
-            let pct = (game.bal / TARGET) * 100;
-            if (pct > 100) pct = 100;
-            ui.progBar.style.width = pct + '%';
-
-            if (game.bal >= TARGET) {
-                ui.lock.classList.add('hidden');
-                ui.unlock.classList.remove('hidden');
-            } else {
-                ui.lock.classList.remove('hidden');
-                ui.unlock.classList.add('hidden');
-            }
-
-            // Цвета цен
-            colorPrice(document.getElementById('buy-click'), game.bal >= game.cCost);
-            colorPrice(document.getElementById('buy-auto'), game.bal >= game.aCost);
-        }
-
-        function colorPrice(el, canBuy) {
-            const priceText = el.querySelector('.price-display');
-            if (canBuy) {
-                priceText.classList.remove('text-red-400');
-                priceText.classList.add('text-teal-600');
-            } else {
-                priceText.classList.remove('text-teal-600');
-                priceText.classList.add('text-red-400');
-            }
-        }
-
-        // Клик по мяте
-        document.getElementById('mint-btn').addEventListener('click', function(e) {
-            // Эффект нажатия
-            this.style.transform = "scale(0.9)";
-            setTimeout(() => this.style.transform = "scale(1)", 100);
-
-            // Логика
-            game.bal += game.cPow;
-            render();
-
-            // Всплывающая цифра
-            const float = document.createElement('div');
-            float.className = 'floating-number';
-            float.textContent = '+' + game.cPow;
-            
-            // Координаты (центр экрана, если тач кривой)
-            let x = e.clientX;
-            let y = e.clientY;
-            if (!x || !y) {
-                 const rect = this.getBoundingClientRect();
-                 x = rect.left + rect.width / 2;
-                 y = rect.top + rect.height / 2;
-            }
-            
-            // Небольшой разброс
-            x += (Math.random() - 0.5) * 40;
-            
-            float.style.left = x + 'px';
-            float.style.top = (y - 50) + 'px';
-            document.body.appendChild(float);
-            setTimeout(() => float.remove(), 800);
-
-            // Вибрация
-            if (navigator.vibrate) navigator.vibrate(15);
-        });
-
-        // Покупка Клика
-        document.getElementById('buy-click').addEventListener('click', function() {
-            if (game.bal >= game.cCost) {
-                game.bal -= game.cCost;
-                game.cPow += 1;
-                game.cLvl++;
-                game.cCost = Math.floor(game.cCost * 1.6);
-                render();
-            }
-        });
-
-        // Покупка Авто
-        document.getElementById('buy-auto').addEventListener('click', function() {
-            if (game.bal >= game.aCost) {
-                game.bal -= game.aCost;
-                game.auto += 1;
-                game.aLvl++;
-                game.aCost = Math.floor(game.aCost * 1.7);
-                render();
-            }
-        });
-
-        // 5. Навигация (Табы)
-        const tabs = {
-            clicker: { btn: document.getElementById('nav-clicker'), screen: document.getElementById('screen-clicker') },
-            upgrades: { btn: document.getElementById('nav-upgrades'), screen: document.getElementById('screen-upgrades') },
-            withdraw: { btn: document.getElementById('nav-withdraw'), screen: document.getElementById('screen-withdraw') }
-        };
-
-        function setTab(name) {
-            Object.values(tabs).forEach(t => {
-                t.btn.classList.remove('active');
-                t.screen.classList.remove('active');
-            });
-            tabs[name].btn.classList.add('active');
-            tabs[name].screen.classList.add('active');
-        }
-
-        tabs.clicker.btn.onclick = () => setTab('clicker');
-        tabs.upgrades.btn.onclick = () => setTab('upgrades');
-        tabs.withdraw.btn.onclick = () => setTab('withdraw');
-
-        // 6. Циклы
-        // Автофарм (1 раз в сек)
-        setInterval(function() {
-            if (game.auto > 0) {
-                game.bal += game.auto;
-                render();
-            }
-        }, 1000);
-
-        // Сохранение (1 раз в 5 сек)
-        setInterval(save, 5000);
-
-        // Первый рендер
-        render();
-
-    </script>
-</body>
-                                                                                               </html>
-    
+            // ЭНЕРГИЯ UI
+            uiEnergy: document.getElementById('ui-energy'),
+            uiMaxEnergy: document.getElementById('ui-max-energy'),
+            energyBar: document.getElementById('energy-bar'),
+            uiRec
