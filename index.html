@@ -103,8 +103,8 @@
             Подписаться
         </a>
 
-        <!-- Кнопка проверки (ИСПРАВЛЕНО: добавлено flex items-center justify-center) -->
-        <button id="btn-check-sub" style="display: none;" class="w-full bg-gradient-to-r from-teal-400 to-green-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition animate-pulse mt-4 flex items-center justify-center">
+        <!-- Кнопка проверки: теперь используется Tailwind класс "hidden" -->
+        <button id="btn-check-sub" class="hidden w-full bg-gradient-to-r from-teal-400 to-green-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition animate-pulse mt-4 flex items-center justify-center">
             Я подписался ✅
         </button>
     </div>
@@ -350,4 +350,5 @@
             lAuto: document.getElementById('lvl-auto'),
 
             // ЭНЕРГИЯ UI
-            uiEnergy: document.getElement
+            uiEnergy: document.getElementById('ui-energy'),
+         
