@@ -89,7 +89,9 @@
 </head>
 <body>
 
-    <!-- ЭКРАН ПОДПИСКИ (GATE) -->
+    <!-- === ЧАСТЬ 2 начинается здесь: ЭКРАН ПОДПИСКИ (GATE) и ВЕРХНЯЯ ПАНЕЛЬ UI === -->
+
+        <!-- ЭКРАН ПОДПИСКИ (GATE) -->
     <div id="gate-screen" style="display: flex;" class="fixed inset-0 z-50 bg-white flex-col items-center justify-center p-6 text-center">
         <div class="w-24 h-24 bg-teal-100 rounded-full flex items-center justify-center mb-6 text-teal-600 shadow-lg">
             <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
@@ -130,7 +132,9 @@
 
         </div>
 
-        <!-- ЭКРАН 1: Кликер -->
+    <!-- === ЧАСТЬ 3 начинается здесь: ЭКРАН 1 (Кликер) и ЧАСТЬ ЭКРАНА 2 (Улучшения) === -->
+
+            <!-- ЭКРАН 1: Кликер -->
         <div id="screen-clicker" class="screen active items-center justify-center bg-green-50 relative">
             <!-- Элемент, который ловит клики. Проверяем энергию в JS -->
             <div id="click-area" class="w-full h-full flex flex-col items-center justify-center cursor-pointer">
@@ -188,6 +192,8 @@
                 </div>
             </div>
 
+    <!-- === ЧАСТЬ 4 начинается здесь: Улучшения Энергии, ЭКРАН 3 (Вывод) и Навигация === -->
+
             <!-- ГРУППА 2: Улучшения Энергии (НОВЫЕ) -->
             <div class="mb-6">
                 <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Энергия (Стамина)</h3>
@@ -226,7 +232,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> <!-- Конец screen-upgrades -->
 
         <!-- ЭКРАН 3: Вывод -->
         <div id="screen-withdraw" class="screen bg-gray-50 px-6 py-10">
@@ -275,7 +281,8 @@
             </button>
         </div>
 
-    </div>
+    </div> <!-- Конец #app -->
+    <!-- === ЧАСТЬ 5 начинается здесь: JavaScript Логика === -->
 
     <!-- СКРИПТ (ЛОГИКА) -->
     <script>
@@ -297,7 +304,7 @@
             maxEnergy: 100,
             currentEnergy: 100,
             
-            // Базовая скорость: 100 энергии / 10 сек = 10 ед/сек
+            // Базовая скорость: 10 ед/сек (100 энергии / 10 сек)
             rechargeRatePerSec: 10, 
             
             // 0 - не заряжается, > 0 - время начала зарядки (timestamp)
@@ -333,7 +340,7 @@
         // 2. Получение элементов (кэширование DOM)
         const ui = {
             gate: document.getElementById('gate-screen'),
-            btnSub: document.getElementById('btn-subscribe'), // Теперь это единственная кнопка на гейте
+            btnSub: document.getElementById('btn-subscribe'), 
             
             bal: document.getElementById('ui-balance'),
             auto: document.getElementById('ui-auto'),
@@ -351,4 +358,298 @@
             tapMessage: document.getElementById('tap-message'),
 
             // АПГРЕЙДЫ ЭНЕРГИИ UI
-           
+            pEMax: document.getElementById('price-energy-max'),
+            lEMax: document.getElementById('lvl-energy-max'),
+            pRSpeed: document.getElementById('price-recharge-speed'),
+            lRSpeed: document.getElementById('lvl-recharge-speed'),
+            
+            progBar: document.getElementById('progress-bar'),
+            lock: document.getElementById('state-locked'),
+            unlock: document.getElementById('state-unlocked')
+        };
+
+        // 3. Логика Подписки (Gate)
+        if (game.sub) {
+            ui.gate.style.display = 'none';
+        }
+
+        // НОВАЯ ЛОГИКА: Нажатие на "Подписаться" открывает TG и сразу пускает в игру.
+        ui.btnSub.addEventListener('click', function() {
+            // Открывает ссылку (по умолчанию для <a>, target="_blank") и пускает в игру
+            game.sub = true;
+            save();
+            
+            // Немного ждем, чтобы избежать мерцания
+            setTimeout(() => {
+                ui.gate.style.display = 'none';
+            }, 50); 
+        });
+        
+        // 4. Логика Игры
+        function save() {
+            try { localStorage.setItem('mintSave_v4', JSON.stringify(game)); } catch(e){}
+        }
+
+        function render() {
+            // Рендер баланса и автофарма
+            ui.bal.textContent = Math.floor(game.bal).toLocaleString();
+            ui.auto.textContent = game.auto;
+            
+            // Рендер апгрейдов производства
+            ui.pClick.textContent = game.cCost.toLocaleString();
+            ui.lClick.textContent = game.cLvl;
+            ui.pAuto.textContent = game.aCost.toLocaleString();
+            ui.lAuto.textContent = game.aLvl;
+
+            // Рендер апгрейдов энергии
+            ui.pEMax.textContent = game.eCost.toLocaleString();
+            ui.lEMax.textContent = game.eMaxLvl;
+            ui.pRSpeed.textContent = game.rCost.toLocaleString();
+            ui.lRSpeed.textContent = game.rSpdLvl;
+
+            // --- Рендер ЭНЕРГИИ ---
+            let currentEnergyDisplay = Math.floor(game.currentEnergy);
+            
+            if (game.rechargeStartTime > 0) {
+                // СОСТОЯНИЕ: ПЕРЕЗАРЯДКА АКТИВНА (Cooldown)
+                // Время, необходимое для полной зарядки (в мс)
+                const rechargeDurationMs = (game.maxEnergy / game.rechargeRatePerSec) * 1000;
+                const elapsed = Date.now() - game.rechargeStartTime;
+                const remainingMs = Math.max(0, rechargeDurationMs - elapsed);
+                // Округляем вверх, чтобы таймер не скакал
+                const remainingSec = Math.ceil(remainingMs / 1000); 
+                
+                // UI: Таймер и прогресс перезарядки
+                const progressPct = (elapsed / rechargeDurationMs) * 100;
+                ui.energyBar.style.width = Math.min(100, progressPct) + '%';
+                ui.energyBar.style.backgroundColor = '#f87171'; // Красный для кулдауна
+                
+                ui.uiEnergy.textContent = remainingSec;
+                ui.uiMaxEnergy.textContent = 'сек';
+
+                ui.uiRechargeRate.textContent = `(Перезарядка)`;
+                ui.uiRechargeRate.classList.remove('text-green-500', 'text-gray-400');
+                ui.uiRechargeRate.classList.add('text-red-500'); 
+
+            } else {
+                // СОСТОЯНИЕ: ДОСТУПНА ЭНЕРГИЯ (Full / Draining)
+
+                ui.energyBar.style.backgroundColor = '#10b981'; // Зеленый
+                ui.uiEnergy.textContent = currentEnergyDisplay;
+                ui.uiMaxEnergy.textContent = game.maxEnergy;
+
+                const energyPct = (game.currentEnergy / game.maxEnergy) * 100;
+                ui.energyBar.style.width = energyPct + '%';
+
+                ui.uiRechargeRate.textContent = `(Макс)`;
+                ui.uiRechargeRate.classList.remove('text-red-500', 'text-green-500');
+                ui.uiRechargeRate.classList.add('text-gray-400');
+            }
+
+            // Сообщение на кнопке
+            if (currentEnergyDisplay <= 0 && game.rechargeStartTime > 0) {
+                ui.tapMessage.textContent = `Ждем ${ui.uiEnergy.textContent} сек...`;
+                ui.tapMessage.classList.add('text-red-500');
+                ui.tapMessage.classList.remove('text-teal-700');
+            } else if (currentEnergyDisplay <= 0 && game.rechargeStartTime === 0) {
+                ui.tapMessage.textContent = 'Нажми, чтобы зарядить!';
+                ui.tapMessage.classList.add('text-red-500');
+                ui.tapMessage.classList.remove('text-teal-700');
+            } else {
+                 ui.tapMessage.textContent = 'Тапай!';
+                 ui.tapMessage.classList.remove('text-red-500');
+                 ui.tapMessage.classList.add('text-teal-700');
+            }
+
+
+            // Логика вывода (Прогресс-бар)
+            const TARGET = 1000000;
+            let pct = (game.bal / TARGET) * 100;
+            if (pct > 100) pct = 100;
+            ui.progBar.style.width = pct + '%';
+
+            if (game.bal >= TARGET) {
+                ui.lock.classList.add('hidden');
+                ui.unlock.classList.remove('hidden');
+            } else {
+                ui.lock.classList.remove('hidden');
+                ui.unlock.classList.add('hidden');
+            }
+
+            // Цвета цен
+            colorPrice(document.getElementById('buy-click'), game.bal >= game.cCost);
+            colorPrice(document.getElementById('buy-auto'), game.bal >= game.aCost);
+            colorPrice(document.getElementById('buy-energy-max'), game.bal >= game.eCost);
+            colorPrice(document.getElementById('buy-recharge-speed'), game.bal >= game.rCost);
+        }
+
+        function colorPrice(el, canBuy) {
+            const priceText = el.querySelector('.price-display');
+            if (canBuy) {
+                priceText.classList.remove('text-red-400');
+                priceText.classList.add('text-teal-600');
+            } else {
+                priceText.classList.remove('text-teal-600');
+                priceText.classList.add('text-red-400');
+            }
+        }
+
+        // Клик по мяте
+        document.getElementById('mint-btn').addEventListener('click', function(e) {
+            
+            // Эффект нажатия
+            this.style.transform = "scale(0.9)";
+            setTimeout(() => this.style.transform = "scale(1)", 100);
+
+            // ПРОВЕРКА ЭНЕРГИИ И СТАРТ ПЕРЕЗАРЯДКИ
+            if (game.currentEnergy <= 0) {
+                
+                // Если таймер еще не запущен (первый клик после обнуления)
+                if (game.rechargeStartTime === 0) {
+                     game.rechargeStartTime = Date.now();
+                }
+                
+                // Вибрация и рендер для обратной связи, но без заработка
+                if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
+                render(); 
+                return; // БЛОКИРУЕМ ЗАРАБОТОК И РАСХОД ЭНЕРГИИ
+            }
+            
+            // === ЭНЕРГИЯ ЕСТЬ - КЛИКАЕМ ===
+
+            // Расход энергии
+            game.currentEnergy -= 1;
+            // Логика заработка
+            game.bal += game.cPow;
+            
+            // Всплывающая цифра
+            const float = document.createElement('div');
+            float.className = 'floating-number';
+            float.textContent = '+' + game.cPow;
+            
+            // Координаты
+            let x = e.clientX || (window.innerWidth / 2);
+            let y = e.clientY || (window.innerHeight / 2);
+            
+            // Небольшой разброс
+            x += (Math.random() - 0.5) * 40;
+            
+            float.style.left = x + 'px';
+            float.style.top = (y - 50) + 'px';
+            document.body.appendChild(float);
+            setTimeout(() => float.remove(), 800);
+
+            // Вибрация
+            if (navigator.vibrate) navigator.vibrate(15);
+            
+            render(); // Обновляем UI
+        });
+
+        // Покупка Клика
+        document.getElementById('buy-click').addEventListener('click', function() {
+            if (game.bal >= game.cCost) {
+                game.bal -= game.cCost;
+                game.cPow += 1;
+                game.cLvl++;
+                game.cCost = Math.floor(game.cCost * 1.6);
+                render();
+            }
+        });
+
+        // Покупка Авто
+        document.getElementById('buy-auto').addEventListener('click', function() {
+            if (game.bal >= game.aCost) {
+                game.bal -= game.aCost;
+                game.auto += 1;
+                game.aLvl++;
+                game.aCost = Math.floor(game.aCost * 1.7);
+                render();
+            }
+        });
+
+        // Покупка Макс. Энергии
+        document.getElementById('buy-energy-max').addEventListener('click', function() {
+            if (game.bal >= game.eCost) {
+                game.bal -= game.eCost;
+                game.maxEnergy += 25;
+                
+                // Если зарядка не идет, сразу увеличиваем текущий запас
+                if (game.rechargeStartTime === 0) {
+                   game.currentEnergy += 25; 
+                }
+
+                game.eMaxLvl++;
+                game.eCost = Math.floor(game.eCost * 1.8);
+                render();
+            }
+        });
+
+        // Покупка Скорости Перезарядки
+        document.getElementById('buy-recharge-speed').addEventListener('click', function() {
+            if (game.bal >= game.rCost) {
+                game.bal -= game.rCost;
+                game.rechargeRatePerSec += 1;
+                game.rSpdLvl++;
+                game.rCost = Math.floor(game.rCost * 1.9);
+                render();
+            }
+        });
+
+        // 5. Навигация (Табы)
+        const tabs = {
+            clicker: { btn: document.getElementById('nav-clicker'), screen: document.getElementById('screen-clicker') },
+            upgrades: { btn: document.getElementById('nav-upgrades'), screen: document.getElementById('screen-upgrades') },
+            withdraw: { btn: document.getElementById('nav-withdraw'), screen: document.getElementById('screen-withdraw') }
+        };
+
+        function setTab(name) {
+            Object.values(tabs).forEach(t => {
+                t.btn.classList.remove('active');
+                t.screen.classList.remove('active');
+            });
+            tabs[name].btn.classList.add('active');
+            tabs[name].screen.classList.add('active');
+        }
+
+        tabs.clicker.btn.onclick = () => setTab('clicker');
+        tabs.upgrades.btn.onclick = () => setTab('upgrades');
+        tabs.withdraw.btn.onclick = () => setTab('withdraw');
+
+        // 6. Единый Цикл Обновления Игры
+        setInterval(function() {
+            
+            // 1. Автофарм (1/10 от секунды)
+            if (game.auto > 0) {
+                // Учитываем, что GAME_TICK_MS = 100, то есть 1/10 секунды
+                game.bal += game.auto * (GAME_TICK_MS / 1000);
+            }
+            
+            // 2. Логика полной перезарядки энергии
+            if (game.rechargeStartTime > 0) {
+                // Длительность зависит от Max Energy и Recharge Rate Per Sec
+                const rechargeDurationMs = (game.maxEnergy / game.rechargeRatePerSec) * 1000;
+                const elapsed = Date.now() - game.rechargeStartTime;
+
+                if (elapsed >= rechargeDurationMs) {
+                    // ПЕРЕЗАРЯДКА ЗАВЕРШЕНА
+                    game.currentEnergy = game.maxEnergy;
+                    game.rechargeStartTime = 0;
+                }
+            }
+
+            // 3. Рендер
+            render();
+
+        }, GAME_TICK_MS);
+
+
+        // Отдельный цикл для сохранения (каждые 5 сек)
+        setInterval(save, 5000); 
+
+        // Первый рендер
+        render();
+
+    </script>
+</body>
+</html>
+
